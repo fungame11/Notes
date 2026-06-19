@@ -2,27 +2,38 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <title>Редактирование заметки</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Редактирование</title>
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = { darkMode: 'class' }
+        if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
+            document.documentElement.classList.add('dark')
+        } else { document.documentElement.classList.remove('dark') }
+    </script>
 </head>
-<body class="bg-gray-100 p-8">
-    <div class="max-w-md mx-auto bg-white p-6 rounded-xl shadow">
-        <h1 class="text-xl font-bold mb-4">Редактирование заметки</h1>
-        <div class="space-y-4">
+<body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-200 min-h-screen p-4 sm:p-8 flex items-center justify-center">
+    <div class="w-full max-w-md bg-white dark:bg-gray-800 p-6 sm:p-8 rounded-xl shadow-lg transition-colors duration-200">
+        <div class="flex justify-between items-center mb-6">
+            <h1 class="text-2xl font-bold">Редактирование</h1>
+            <span id="save-status" class="text-sm text-green-500 hidden font-medium">✓ Сохранено</span>
+        </div>
+        
+        <div class="space-y-5">
             <div>
-                <label class="block text-sm font-medium text-gray-700">Название заметки</label>
-                <input type="text" id="name" class="mt-1 block w-full border border-gray-300 rounded-md p-2">
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Название</label>
+                <input type="text" id="name" class="w-full border border-gray-300 dark:border-gray-600 bg-transparent rounded-lg p-2.5 focus:ring-2 focus:ring-yellow-500 outline-none transition-colors">
             </div>
             <div>
-                <label class="block text-sm font-medium text-gray-700">Описание заметки</label>
-                <textarea id="description" rows="4" class="mt-1 block w-full border border-gray-300 rounded-md p-2"></textarea>
+                <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Описание</label>
+                <textarea id="description" rows="5" class="w-full border border-gray-300 dark:border-gray-600 bg-transparent rounded-lg p-2.5 focus:ring-2 focus:ring-yellow-500 outline-none transition-colors resize-y"></textarea>
             </div>
-            <div class="flex gap-2 pt-2">
-                <button id="save" class="bg-yellow-600 text-white px-4 py-2 rounded-lg hover:bg-yellow-700">Сохранить</button>
-                <button id="delete" class="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700">Удалить</button>
-                <a href="/notes" class="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400">Назад</a>
+            <div class="flex flex-col sm:flex-row gap-3 pt-4">
+                <button id="save" class="flex-1 bg-yellow-500 text-white px-4 py-2.5 rounded-lg hover:bg-yellow-600 transition-colors font-medium">Обновить</button>
+                <button id="delete" class="sm:flex-none bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white px-6 py-2.5 rounded-lg transition-colors font-medium border border-red-500">Удалить</button>
             </div>
+            <a href="/notes" class="block text-center w-full bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 px-4 py-2.5 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors font-medium mt-2">← Вернуться к списку</a>
         </div>
     </div>
 
@@ -30,6 +41,7 @@
         $(document).ready(function() {
             const id = "{{ $id }}";
 
+            // Загрузка
             $.ajax({
                 url: `/api/notes/${id}`,
                 method: 'get',
@@ -41,6 +53,7 @@
                 }
             });
 
+            // Сохранение
             $('#save').click(function() {
                 $.ajax({
                     url: `/api/notes/${id}`,
@@ -51,22 +64,21 @@
                         "name": $("#name").val(),
                         "description": $('#description').val()
                     }),
-                    success: function(data) {
-                        alert("Заметка updated");
-                        const note = data.response.data;
-                        $('#name').val(note.name);
-                        $('#description').val(note.description);
+                    success: function() {
+                        const status = $('#save-status');
+                        status.removeClass('hidden').fadeIn();
+                        setTimeout(() => status.fadeOut(), 2000);
                     }
                 });
             });
 
+            // Удаление
             $('#delete').click(function() {
-                if(confirm('Вы уверены, что хотите удалить эту задачу?')) {
+                if(confirm('Вы уверены, что хотите удалить эту заметку?')) {
                     $.ajax({
                         url: `/api/notes/${id}`,
                         method: 'delete',
                         success: function() {
-                            alert('Заметка удалена');
                             window.location.href = '/notes';
                         }
                     });
