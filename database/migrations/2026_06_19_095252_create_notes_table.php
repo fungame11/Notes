@@ -7,12 +7,14 @@ use Illuminate\Support\Facades\Schema;
 return new class extends Migration {
         public function up(): void {
         Schema::create('notes', function (Blueprint $table) {
-            $table->id(); // Проверьте точку с запятой здесь!
-            $table->boolean('done')->default(false);
-            $table->string('name');
-            $table->text('description');
-            $table->timestamps();
-        });
+    $table->id();
+    $table->foreignId('user_id')->constrained()->onDelete('cascade');
+    $table->boolean('done')->default(false);
+    $table->string('name');
+    $table->text('description');
+    $table->timestamps();
+});
+
     }
 
     public function down(): void {

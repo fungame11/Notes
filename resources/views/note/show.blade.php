@@ -3,45 +3,64 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Редактирование</title>
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = { darkMode: 'class' }
+        // Моментально синхронизируем тему из localStorage до отрисовки интерфейса
         if (localStorage.theme === 'dark' || (!('theme' in localStorage) && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
             document.documentElement.classList.add('dark')
         } else { document.documentElement.classList.remove('dark') }
     </script>
 </head>
 <body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-200 min-h-screen p-4 sm:p-8 flex items-center justify-center">
+    
     <div class="w-full max-w-md bg-white dark:bg-gray-800 p-6 sm:p-8 rounded-xl shadow-lg transition-colors duration-200">
         <div class="flex justify-between items-center mb-6">
             <h1 class="text-2xl font-bold">Редактирование</h1>
-            <span id="save-status" class="text-sm text-green-500 hidden font-medium">✓ Сохранено</span>
+            <span id="save-status" class="text-sm text-green-500 dark:text-green-400 hidden font-medium">✓ Сохранено</span>
         </div>
         
         <div class="space-y-5">
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Название</label>
-                <input type="text" id="name" class="w-full border border-gray-300 dark:border-gray-600 bg-transparent rounded-lg p-2.5 focus:ring-2 focus:ring-yellow-500 outline-none transition-colors">
+                <input type="text" id="name" 
+                    class="w-full border border-gray-300 dark:border-gray-600 bg-transparent text-gray-900 dark:text-gray-100 rounded-lg p-2.5 focus:ring-2 focus:ring-yellow-500 outline-none transition-colors">
             </div>
+
             <div>
                 <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Описание</label>
-                <textarea id="description" rows="5" class="w-full border border-gray-300 dark:border-gray-600 bg-transparent rounded-lg p-2.5 focus:ring-2 focus:ring-yellow-500 outline-none transition-colors resize-y"></textarea>
+                <textarea id="description" rows="5" 
+                    class="w-full border border-gray-300 dark:border-gray-600 bg-transparent text-gray-900 dark:text-gray-100 rounded-lg p-2.5 focus:ring-2 focus:ring-yellow-500 outline-none transition-colors resize-y"></textarea>
             </div>
+
             <div class="flex flex-col sm:flex-row gap-3 pt-4">
-                <button id="save" class="flex-1 bg-yellow-500 text-white px-4 py-2.5 rounded-lg hover:bg-yellow-600 transition-colors font-medium">Обновить</button>
-                <button id="delete" class="sm:flex-none bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white px-6 py-2.5 rounded-lg transition-colors font-medium border border-red-500">Удалить</button>
+                <button id="save" class="flex-1 bg-yellow-500 text-white px-4 py-2.5 rounded-lg hover:bg-yellow-600 transition-colors font-medium shadow-sm">
+                    Обновить
+                </button>
+                <button id="delete" class="sm:flex-none bg-red-500/10 text-red-500 hover:bg-red-500 hover:text-white dark:bg-red-500/20 dark:text-red-400 dark:hover:bg-red-500 dark:hover:text-white px-6 py-2.5 rounded-lg transition-colors font-medium border border-red-500 shadow-sm">
+                    Удалить
+                </button>
             </div>
-            <a href="/notes" class="block text-center w-full bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 px-4 py-2.5 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors font-medium mt-2">← Вернуться к списку</a>
+
+            <a href="/notes" class="block text-center w-full bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-200 px-4 py-2.5 rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors font-medium mt-2 shadow-sm">
+                ← Вернуться к списку
+            </a>
         </div>
     </div>
 
     <script>
         $(document).ready(function() {
+            // Настройка CSRF-токена для безопасности сессий Laravel
+            $.ajaxSetup({
+                headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') }
+            });
+
             const id = "{{ $id }}";
 
-            // Загрузка
+            // 1. Получение данных текущей заметки
             $.ajax({
                 url: `/api/notes/${id}`,
                 method: 'get',
@@ -53,8 +72,12 @@
                 }
             });
 
-            // Сохранение
+            // 2. Изменение (Обновление) заметки
             $('#save').click(function() {
+                const btn = $(this);
+                // Временно блокируем кнопку для предотвращения двойных кликов
+                btn.prop('disabled', true).text('Сохранение...');
+
                 $.ajax({
                     url: `/api/notes/${id}`,
                     method: 'put',
@@ -68,11 +91,18 @@
                         const status = $('#save-status');
                         status.removeClass('hidden').fadeIn();
                         setTimeout(() => status.fadeOut(), 2000);
+                    },
+                    error: function() {
+                        alert('Произошла ошибка при обновлении заметки.');
+                    },
+                    complete: function() {
+                        // Возвращаем кнопку в исходное состояние в любом случае
+                        btn.prop('disabled', false).text('Обновить');
                     }
                 });
             });
 
-            // Удаление
+            // 3. Удаление заметки
             $('#delete').click(function() {
                 if(confirm('Вы уверены, что хотите удалить эту заметку?')) {
                     $.ajax({

@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Список заметок</title>
     <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -15,14 +16,23 @@
 </head>
 <body class="bg-gray-100 dark:bg-gray-900 text-gray-900 dark:text-gray-100 transition-colors duration-200 min-h-screen p-4 sm:p-8">
     <div class="max-w-3xl mx-auto">
+        
         <div class="flex justify-between items-center mb-6 bg-white dark:bg-gray-800 p-4 sm:p-6 rounded-xl shadow transition-colors duration-200">
             <h1 class="text-xl sm:text-2xl font-bold">Мои заметки</h1>
+            
             <div class="flex gap-2 sm:gap-4 items-center">
                 <button id="theme-toggle" class="p-2 rounded-lg bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors">
                     <span class="dark:hidden">🌙</span>
                     <span class="hidden dark:inline">☀️</span>
                 </button>
-                <a href="/notes/create" class="bg-blue-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm sm:text-base">Добавить</a>
+
+                @if(Auth::check() && Auth::user()->is_admin)
+                    <a href="/admin" class="bg-amber-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-amber-700 transition-colors text-sm sm:text-base font-medium shadow-sm">
+                        Админка
+                    </a>
+                @endif
+
+                <a href="/notes/create" class="bg-blue-600 text-white px-3 sm:px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors text-sm sm:text-base font-medium shadow-sm">Добавить</a>
             </div>
         </div>
 
@@ -44,6 +54,10 @@
 
     <script>
         $(document).ready(function() {
+            $.ajaxSetup({
+                headers: { 'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content') }
+            });
+
             $('#theme-toggle').click(function() {
                 document.documentElement.classList.toggle('dark');
                 localStorage.theme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
@@ -57,7 +71,7 @@
                     const notes = data.response.data;
                     notes.forEach(note => {
                         $('#wrapper_note_table').append(`
-                            <tr class="border-b border-gray-100 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors note_wrapper" id="${note.id}">
+                            <tr class="border-b border-gray-100 dark:border-gray-700/50 hover:bg-gray-50 dark:hover:bg-gray-700/30 transition-colors note_wrapper" id="${note.id}">
                                 <td class="p-4">
                                     <a href="/notes/${note.id}/edit" class="text-blue-600 dark:text-blue-400 font-medium hover:underline block break-words">
                                         ${note.name}
@@ -73,7 +87,7 @@
                     });
                 }
             });
-
+			
             $(document).on('click', '.delete-btn', function() {
                 const id = $(this).data('id');
                 if(confirm('Удалить эту заметку?')) {
